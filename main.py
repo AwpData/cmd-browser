@@ -1,15 +1,17 @@
 import os
 import sys
 from collections import deque
+from colorama import Fore
 
-import requests as requests
+import requests
+from bs4 import BeautifulSoup
 
 
 def readfile(name):
     if os.access(os.getcwd() + "/{}".format(name), os.F_OK):
-        with open(os.getcwd() + "/{}".format(name), "r", encoding="utf-8") as file:
-            for line in file:
-                print(line.strip())
+        with open(os.getcwd() + "/{}".format(name), "r", encoding="utf-8") as r_file:
+            for line in r_file:
+                print(line.strip("\n"))
     else:
         print("Error: Incorrect URL")
 
@@ -41,10 +43,23 @@ while True:
     else:
         try:
             r = requests.get("https://{}".format(website))  # Attempt to first get info from website
-            with open(os.path.join(os.getcwd(), "{}".format(website[:website.find(".")])), "w",
+            with open(os.path.join(os.getcwd(), "{}".format(website[:website.rfind(".")])), "w+",
                       encoding="UTF-8") as file:  # First, create a file to store the GET data
-                file.writelines(r.text)  # Then write the text of the page to it
-            stack.append(website[:website.find(".")])  # Append it to our "back stack
-            readfile(website[:website.find(".")])  # And now read the content to the screen
+
+                soup = BeautifulSoup(r.content, "html.parser")
+                tags = ['p', 'a', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']
+                data = list()
+                for tag in tags:
+                    spec = soup.find_all(tag)
+                    for text in spec:
+                        if tag == "a":
+                            data.append(Fore.BLUE + text.get_text(" ", strip=True) + "\n")
+                        else:
+                            data.append(text.get_text(" ", strip=True) + "\n")
+
+                file.writelines(data)  # Then write the text of the page to it
+
+            stack.append(website[:website.rfind(".")])  # Append it to our "back stack
+            readfile(website[:website.rfind(".")])  # And now read the content to the screen
         except requests.exceptions.ConnectionError:
-            print("URL does not exist!")
+            print("Error: Incorrect URL")
